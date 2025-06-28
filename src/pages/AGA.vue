@@ -1,28 +1,30 @@
 <template>
-  <q-page class="q-pa-md">
-    <h2>Análisis de Grafos y Agrupación usando SVD</h2>
-    <div class="q-mb-md">
-      <q-input
-        v-model="matrixInput"
-        type="textarea"
-        label="Matriz de adyacencia (separa filas por coma y columnas por espacio, ej: 0 1 1, 1 0 1, 1 1 0)"
-        autogrow
-        filled
-        class="q-mb-md"
-      />
-      <q-btn color="primary" label="Analizar grafo" @click="analyzeGraph" />
-      <q-btn color="secondary" label="Grafo de ejemplo" @click="loadExample" class="q-ml-sm" />
+  <q-page class="q-pa-md bg-page">
+    <div class="card-container">
+      <h2 class="title-blue">Análisis de Grafos y Agrupación usando SVD</h2>
+      <div class="q-mb-md">
+        <q-input
+          v-model="matrixInput"
+          type="textarea"
+          label="Matriz de adyacencia (separa filas por coma y columnas por espacio, ej: 0 1 1, 1 0 1, 1 1 0)"
+          autogrow
+          filled
+          class="q-mb-md"
+        />
+        <q-btn class="btn-main" label="Analizar grafo" @click="analyzeGraph" />
+        <q-btn class="btn-accent q-ml-sm" label="Grafo de ejemplo" @click="loadExample" />
+      </div>
+      <div v-if="error" class="text-negative q-mb-md">{{ error }}</div>
+      <div v-if="communities.length">
+        <p><b>Agrupaciones encontradas (por color):</b></p>
+        <ul>
+          <li v-for="(group, idx) in communities" :key="idx">
+            Comunidad {{ idx + 1 }}: Nodos {{ group.join(', ') }}
+          </li>
+        </ul>
+      </div>
+      <div ref="graphContainer" style="height: 400px; width: 100%; border: 1px solid #e3eaf3;"></div>
     </div>
-    <div v-if="error" class="text-negative q-mb-md">{{ error }}</div>
-    <div v-if="communities.length">
-      <p><b>Agrupaciones encontradas (por color):</b></p>
-      <ul>
-        <li v-for="(group, idx) in communities" :key="idx">
-          Comunidad {{ idx + 1 }}: Nodos {{ group.join(', ') }}
-        </li>
-      </ul>
-    </div>
-    <div ref="graphContainer" style="height: 400px; width: 100%; border: 1px solid #ccc;"></div>
   </q-page>
 </template>
 
@@ -50,7 +52,7 @@ const exampleGraphs = [
   // 5. Grafo de 8 nodos, dos cuadrados conectados
   '0 1 0 1 0 0 0 0, 1 0 1 0 0 0 0 0, 0 1 0 1 0 0 0 0, 1 0 1 0 1 0 0 0, 0 0 0 1 0 1 0 1, 0 0 0 0 1 0 1 0, 0 0 0 0 0 1 0 1, 0 0 0 0 1 0 1 0',
   // 6. Grafo de 9 nodos, cuadrado con diagonales
-  '0 1 1 0 0 0 0 0 0, 1 0 1 1 0 0 0 0 0, 1 1 0 1 1 0 0 0 0, 0 1 1 0 1 1 0 0 0, 0 0 1 1 0 1 1 0 0, 0 0 0 1 1 0 1 1 0, 0 0 0 0 1 1 0 1 1, 0 0 0 0 0 1 1 0 1, 0 0 0 0 0 0 1 1 0',
+  '0 1 1 0 0 0 0 0 0, 1 0 1 1 0 0 0 0 0, 1 1 0 1 1 0 0 0, 0 1 1 0 1 1 0 0 0, 0 0 1 1 0 1 1 0 0, 0 0 0 1 1 0 1 1 0, 0 0 0 0 1 1 0 1 1, 0 0 0 0 0 1 1 0 1, 0 0 0 0 0 0 1 1 0',
   // 7. Grafo de 10 nodos, dos comunidades conectadas por un puente
   '0 1 1 1 0 0 0 0 0 0, 1 0 1 1 0 0 0 0 0 0, 1 1 0 1 0 0 0 0 0 0, 1 1 1 0 1 0 0 0 0 0, 0 0 0 1 0 1 1 1 0 0, 0 0 0 0 1 0 1 1 1 0, 0 0 0 0 1 1 0 1 1 0, 0 0 0 0 1 1 1 0 1 1, 0 0 0 0 0 1 1 1 0 1, 0 0 0 0 0 0 0 1 1 0',
   // 8. Grafo de 10 nodos, anillo
@@ -115,15 +117,53 @@ function analyzeGraph() {
     error.value = parseError;
     return;
   }
+  if (!Array.isArray(matrix) || matrix.length === 0) {
+    error.value = 'La matriz ingresada no es válida.';
+    return;
+  }
   try {
     const comms = getCommunitiesFromSVD(matrix);
     communities.value = comms;
     visualizeGraph(matrix, comms);
   } catch (e) {
-    error.value = 'Error en el análisis: ' + e.message;
+    error.value = 'Error al analizar la matriz: ' + e.message;
   }
 }
 </script>
 
-<style scoped>
+<style>
+.bg-page {
+  background: #f5f8fa;
+}
+.card-container {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 4px 24px 0 rgba(33, 150, 243, 0.07);
+  padding: 40px 28px;
+  max-width: 700px;
+  margin: 0 auto;
+}
+.title-blue {
+  color: #1976D2;
+  margin-bottom: 18px;
+}
+.btn-main {
+  background: #1976D2;
+  color: #fff;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  box-shadow: 0 2px 8px 0 rgba(25, 118, 210, 0.10);
+}
+.btn-accent {
+  background: #e3f2fd;
+  color: #1976D2;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  box-shadow: 0 2px 8px 0 rgba(33, 150, 243, 0.10);
+}
+.btn-main:hover, .btn-accent:hover {
+  filter: brightness(0.97);
+}
 </style>
